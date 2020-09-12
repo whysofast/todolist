@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const date = require(__dirname + "/date.js");
-
+const _ = require("lodash");
 const mongoose = require("mongoose");
 
 mongoose.connect('mongodb://localhost:27017/todolistDB', {
@@ -75,7 +75,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/:customListName", (req, res) => {
-    const customListName = req.params.customListName
+    const customListName = _.capitalize(req.params.customListName);
 
     if(customListName !== "favicon.ico"){    // don't even ask why.
         List.findOne({name:customListName},function(err,foundList){
