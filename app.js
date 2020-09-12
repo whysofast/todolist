@@ -129,16 +129,28 @@ app.post("/", (req, res) => {
 
 app.post("/delete", (req, res) => {
     let checkedTask = req.body.checkbox;
-    Item.deleteOne({
-        task: checkedTask
-    }, (err) => {
-        if (err) {
-            console.log(err);
-        } else {
-            console.log(`"${checkedTask}" succesfully deleted.`);
-        }
-    });
-    res.redirect("/");
+    let listName = req.body.listName[0];
+    if(listName == date.getDay()){
+        Item.deleteOne({task: checkedTask}, (err) => {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log(`"${checkedTask}" succesfully deleted.`);
+            }
+        });
+        res.redirect("/");
+    } else {
+        List.findOneAndUpdate({name: listName},{$pull: {items:{task: checkedTask}}},function(err){
+            if(!err){
+                if(req.body.listName[0].length > 1){
+                    res.redirect("/" + listName);
+                } else{
+                    res.redirect("/");
+                }
+            }
+        })
+    }
+
 })
 
 
