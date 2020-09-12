@@ -4,61 +4,145 @@ const date = require(__dirname + "/date.js");
 
 const mongoose = require("mongoose");
 
-mongoose.connect('mongodb://localhost:27017/todolistDB', {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect('mongodb://localhost:27017/todolistDB', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
 
 const itemsSchema = {
-    item: String
+    task: String
 };
 
-const Item = mongoose.model("Item",itemsSchema);
+const Item = mongoose.model("Item", itemsSchema);
 
-const item1 = new Item({item : "Do exercises"})
-const item2 = new Item({item : "Take a cold bath"})
-const item3 = new Item({item : "Study hard AF"})
-
-const defaultItemsArray = [item1,item2,item3];
-
-Item.insertMany(defaultItemsArray,function(err){
-    if(err){console.log(err);} else {console.log("Default items succesfully inserted!");}
+const item1 = new Item({
+    task: "Welcome !"
 })
+const item2 = new Item({
+    task: "+ for adding new items"
+})
+const item3 = new Item({
+    task: "<-- hit this to delete an item"
+})
+
+const defaultItemsArray = [item1, item2, item3];
+
+
+const listSchema = {
+    name: String,
+    items: [itemsSchema]
+};
+
+const List = mongoose.model("List", listSchema);
 
 let items = [];
 let workItems = [];
 const app = express();
 
-app.set('view engine','ejs');
-app.use(bodyParser.urlencoded({extended: true}));
+app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
 app.use(express.static("public"));
 
-app.get("/",(req,res)=>{
+app.get("/", (req, res) => {
+
 
     let currentDay = date.getDay();
+    Item.find(function (err, items) {
 
-    res.render("index",{listTitle: currentDay, newListItems:items});
+        if (items.length == 0) {
+            Item.insertMany(defaultItemsArray, function (err) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    console.log("Default items succesfully inserted!");
+                }
+            })
+        }
+
+        if (err) {
+            console.log(`error while finding items: ${err}`);
+        } else {
+            let tasks = [];
+            for (x of items) {
+                tasks.push(x.task);
+            }
+            res.render("index", {listTitle: currentDay,newListItems: tasks});
+        }
+    })
+
 });
 
-app.get("/work", (req,res)=>{
-    res.render("index",{listTitle:"Work", newListItems:workItems});
-})
+app.get("/:customListName", (req, res) => {
+    const customListName = req.params.customListName
+
+    if(customListName !== "favicon.ico"){    // don't even ask why.
+        List.findOne({name:customListName},function(err,foundList){
+            if(!err){
+                if(!foundList){
+                    const list = new List({
+                        name: customListName,
+                        items: defaultItemsArray
+                    });
+                    
+                    list.save(function(err1){
+                        if(!err1){
+                            res.redirect("/" + customListName);
+                        }
+                    });
+                }else{
+                    let tasks = [];
+                    for (x of foundList.items) {
+                        tasks.push(x.task);
+                    }
+                    res.render("index",{listTitle: customListName,newListItems: tasks})
+                }
+            } 
+        })
+    }
+        
+        
+        
+    })
 
 
-app.post("/",(req,res)=>{
+app.post("/", (req, res) => {
 
-    let item = req.body.newItem;
-    if(req.body.button === 'Work'){
-        workItems.push(item);
-        res.redirect("/work");
-    } else {
-        items.push(item);
+    const listName = req.body.button
+
+    let item = new Item({
+        task: req.body.newItem
+    });
+    if (listName==date.getDay()) {
+        item.save();
         res.redirect("/");
+    } else {
+        List.findOne({name:listName},function(err,foundList){
+            foundList.items.push(item);
+            foundList.save();
+            res.redirect("/"+ listName);
+        })
     }
 
+})
 
+app.post("/delete", (req, res) => {
+    let checkedTask = req.body.checkbox;
+    Item.deleteOne({
+        task: checkedTask
+    }, (err) => {
+        if (err) {
+            console.log(err);
+        } else {
+            console.log(`"${checkedTask}" succesfully deleted.`);
+        }
+    });
+    res.redirect("/");
 })
 
 
 
-
-app.listen(3000,()=>{
+app.listen(3000, () => {
     console.log(`Server running on ${3000}`);
 })

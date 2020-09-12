@@ -5,13 +5,16 @@
 
     <div class="box">
 
-        <% for (item of newListItems){ %>
-            <div class="item">
-                <input type="checkbox">
-                <p><%=item%></p>
-            </div>
-        <% } %>
-
+        <!-- Remove items form -->
+        <form action="/delete" method="POST">
+            <% for (item of newListItems){ %>
+                <div class="item">
+                    <input type="checkbox" name="checkbox" value="<%=item%>" onchange="this.form.submit()">
+                    <p><%=item%></p>
+                </div>
+            <% } %>
+        </form>
+        <!-- Insert items form -->
         <form class="item" action="/" method="post">
             <input type="text" name="newItem" placeholder="New item" autocomplete="off">
             <button type="submit" name="button" value= <%=listTitle%>>+</button>
